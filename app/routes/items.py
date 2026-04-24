@@ -81,3 +81,48 @@ async def delete_item_endpoint(list_id: UUID, item_id: UUID) -> DeleteItemRespon
     deleted = await delete_item(item_id=item_id, list_id=list_id)
     await recalculate_budget(list_id)
     return DeleteItemResponse.model_validate(deleted.model_dump())
+
+
+@router.post("/lists/{list_id}/items/bulk-check", status_code=status.HTTP_200_OK)
+async def bulk_check_items(
+    list_id: UUID,
+    checked: bool = True,
+    x_user_id: str = Header(...),
+    x_user_email: str = Header(...),
+):
+
+    items = await get_items(list_id=list_id)
+    for item in items:
+        await update_item(
+            item_id=item.id,
+            list_id=list_id,
+            checked=checked
+        )
+    
+    await create_notification(
+        user_id=UUID(x_user_id),
+        list_id=list_id,
+        message=f"Toate produsele din listă au fost {'bifate' if checked else 'debifate'} de către {x_user_email}."
+    )
+    return {"message": f"S-au actualizat {len(items)} produse.", "status": "success"}
+
+
+@router.get("/lists/{list_id}/items/spending-analysis")
+async def get_list_spending_analysis(list_id: UUID):
+    items = await get_items(list_id=list_id)
+    if not items:
+        return {"total_items": 0, "most_expensive": None, "average_price": 0}
+
+    total_price = sum(item.estimated_price * item.quantity for item in items)
+    most_expensive = max(items, key=lambda x: x.estimated_price)
+
+    return {
+        "total_items": len(items),
+        "total_list_value": total_price,
+        "average_item_price": total_price / len(items),
+        "most_expensive_item": {
+            "name": most_expensive.name,
+            "price": most_expensive.estimated_price
+        },
+        "currency": "RON"
+    }
