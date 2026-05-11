@@ -35,3 +35,12 @@ jobs:
           tags: |
             trel0w/shopping-items-service:latest
             trel0w/shopping-items-service:sha-${{ github.sha }}
+
+      - name: Trigger centralized swarm deploy
+        run: |
+          curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.INFRA_REPO_DISPATCH_TOKEN }}" \
+            https://api.github.com/repos/shopping-list-cloud-native/shopping-infra-deployment/dispatches \
+            -d '{"event_type":"trigger-swarm-deploy","client_payload":{"source_repo":"shopping-items-service","sha":"${{ github.sha }}"}}'
