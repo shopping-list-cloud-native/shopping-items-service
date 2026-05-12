@@ -96,14 +96,18 @@ async def bulk_check_items(
         await update_item(
             item_id=item.id,
             list_id=list_id,
-            checked=checked
+            name=None,
+            quantity=None,
+            estimated_price=None,
+            checked=checked,
         )
     
-    await create_notification(
-        user_id=UUID(x_user_id),
-        list_id=list_id,
-        message=f"Toate produsele din listă au fost {'bifate' if checked else 'debifate'} de către {x_user_email}."
-    )
+    if checked:
+        await create_notification(
+            user_id=UUID(x_user_id),
+            list_id=list_id,
+            message=f"{x_user_email} a bifat toate produsele din listă.",
+        )
     return {"message": f"S-au actualizat {len(items)} produse.", "status": "success"}
 
 
